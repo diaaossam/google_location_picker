@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_location_picker/models/location_model.dart';
@@ -11,7 +9,7 @@ import 'package:location/location.dart';
 
 final location = Provider((ref) => Location());
 
-class PickLocationScreen extends ConsumerStatefulWidget {
+class PickLocationScreen extends StatefulWidget {
   const PickLocationScreen({
     super.key,
     required this.googleKey,
@@ -22,10 +20,10 @@ class PickLocationScreen extends ConsumerStatefulWidget {
   final Color? pinColor;
   final Widget? resultContainer;
   @override
-  ConsumerState<PickLocationScreen> createState() => _PickLocationScreenState();
+  State<PickLocationScreen> createState() => _PickLocationScreenState();
 }
 
-class _PickLocationScreenState extends ConsumerState<PickLocationScreen> {
+class _PickLocationScreenState extends State<PickLocationScreen> {
   late ChangeNotifierProvider<LocationProvider> locationProvider;
   @override
   void initState() {
@@ -34,7 +32,7 @@ class _PickLocationScreenState extends ConsumerState<PickLocationScreen> {
           widget.googleKey,
         ));
 
-    ref.read(locationProvider).getCurrentLocation();
+    context.read(locationProvider).getCurrentLocation();
     super.initState();
   }
 
@@ -43,23 +41,22 @@ class _PickLocationScreenState extends ConsumerState<PickLocationScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          Builder(builder: (context) {
-            log("${ref.watch(locationProvider).currentLocation.latitude}");
-            return GoogleMap(
+          Consumer(
+            builder: (_, watch, __) => GoogleMap(
               myLocationButtonEnabled: false,
               myLocationEnabled: true,
               initialCameraPosition: CameraPosition(
                 target: LatLng(
-                  ref.watch(locationProvider).currentLocation.latitude,
-                  ref.watch(locationProvider).currentLocation.longitude,
+                  watch(locationProvider).currentLocation.latitude,
+                  watch(locationProvider).currentLocation.longitude,
                 ),
                 zoom: 15,
               ),
-              onCameraMove: ref.read(locationProvider).onCameraMove,
-              onCameraIdle: ref.read(locationProvider).onCameraId,
-              onMapCreated: ref.read(locationProvider).onMapCreated,
-            );
-          }),
+              onCameraMove: context.read(locationProvider).onCameraMove,
+              onCameraIdle: context.read(locationProvider).onCameraId,
+              onMapCreated: context.read(locationProvider).onMapCreated,
+            ),
+          ),
           PinWidget(
             pinColor: widget.pinColor,
           ),
@@ -80,12 +77,14 @@ class _PickLocationScreenState extends ConsumerState<PickLocationScreen> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: Text(
-                          ref.watch(locationProvider).currentLocation.address ??
-                              (Localizations.localeOf(context).languageCode ==
-                                      "en"
-                                  ? "Not defined"
-                                  : "موقع غير محدد"),
+                        child: Consumer(
+                          builder: (_, watch, __) => Text(
+                            watch(locationProvider).currentLocation.address ??
+                                (Localizations.localeOf(context).languageCode ==
+                                        "en"
+                                    ? "Not defined"
+                                    : "موقع غير محدد"),
+                          ),
                         ),
                       ),
                       const SizedBox(
@@ -99,8 +98,8 @@ class _PickLocationScreenState extends ConsumerState<PickLocationScreen> {
                           Icons.arrow_forward,
                         ),
                         onPressed: () {
-                          Navigator.of(context)
-                              .pop(ref.read(locationProvider).currentLocation);
+                          Navigator.of(context).pop(
+                              context.read(locationProvider).currentLocation);
                         },
                       )
                     ],
@@ -120,18 +119,20 @@ class _PickLocationScreenState extends ConsumerState<PickLocationScreen> {
                     const SizedBox(
                       width: 10,
                     ),
-                    Expanded(
-                      child: SearchableTextField<LocationModel>(
-                        items: ref.watch(locationProvider).searchResult,
-                        onSubmit: (locationModel) {
-                          ref
-                              .read(locationProvider)
-                              .onLocationPicked(locationModel);
-                        },
-                        itemToString: (location) => location.address ?? "",
-                        onChanged: (query) {
-                          ref.read(locationProvider).search(query);
-                        },
+                    Consumer(
+                      builder: (_, watch, __) => Expanded(
+                        child: SearchableTextField<LocationModel>(
+                          items: watch(locationProvider).searchResult,
+                          onSubmit: (locationModel) {
+                            context
+                                .read(locationProvider)
+                                .onLocationPicked(locationModel);
+                          },
+                          itemToString: (location) => location.address ?? "",
+                          onChanged: (query) {
+                            context.read(locationProvider).search(query);
+                          },
+                        ),
                       ),
                     )
                   ],

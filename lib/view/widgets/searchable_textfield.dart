@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SearchableTextField<T> extends ConsumerStatefulWidget {
+class SearchableTextField<T> extends StatefulWidget {
   const SearchableTextField({
     Key? key,
     this.onChanged,
@@ -35,12 +34,10 @@ class SearchableTextField<T> extends ConsumerStatefulWidget {
   final EdgeInsetsDirectional? margin;
   final InputDecoration? decoration;
   @override
-  ConsumerState<SearchableTextField> createState() =>
-      _AutoCompleteTextFieldState<T>();
+  State<SearchableTextField> createState() => _AutoCompleteTextFieldState<T>();
 }
 
-class _AutoCompleteTextFieldState<T>
-    extends ConsumerState<SearchableTextField<T>> {
+class _AutoCompleteTextFieldState<T> extends State<SearchableTextField<T>> {
   OverlayEntry? _entry;
   final FocusNode _focusNode = FocusNode();
   final LayerLink _layerLink = LayerLink();
