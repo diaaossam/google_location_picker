@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
-import 'package:geocoder2/geocoder2.dart';
 import 'package:google_location_picker/models/location_model.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
@@ -14,7 +13,7 @@ class LocationProvider extends ChangeNotifier {
   final location.Location _location;
   late LocationModel _currentLocation;
   final String qKey;
-  Completer<GoogleMapController> controller = Completer();
+  late GoogleMapController controller;
 
   List<LocationModel> searchResult = [];
 
@@ -43,16 +42,24 @@ class LocationProvider extends ChangeNotifier {
     );
 
     _currentLocation = currentLocation;
+    moveToCurrentLoction();
     notifyListeners();
   }
 
   Future<String?> getAddress(LocationModel location) async {
-    final address = await Geocoder2.getDataFromCoordinates(
-        latitude: location.latitude,
-        longitude: location.longitude,
-        googleMapApiKey: qKey);
+    String host = 'https://maps.google.com/maps/api/geocode/json';
+    final url =
+        '$host?key=$qKey&language=en&latlng=${location.latitude},${location.longitude}';
 
-    return address.address;
+    var response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      Map data = jsonDecode(response.body);
+      String formattedAddress = data["results"][0]["formatted_address"];
+
+      return formattedAddress;
+    } else {
+      return null;
+    }
   }
 
   onCameraMove(CameraPosition cameraPosition) {
@@ -75,14 +82,7 @@ class LocationProvider extends ChangeNotifier {
   }
 
   onMapCreated(GoogleMapController controller) async {
-    this.controller.complete(controller);
-    final mapController = await this.controller.future;
-    mapController.animateCamera(CameraUpdate.newCameraPosition(
-      CameraPosition(
-        target: LatLng(_currentLocation.latitude, _currentLocation.longitude),
-        zoom: 15,
-      ),
-    ));
+    this.controller = controller;
   }
 
   search(String query) async {
@@ -122,8 +122,12 @@ class LocationProvider extends ChangeNotifier {
 
   onLocationPicked(LocationModel location) async {
     currentLocation = await getLocationDetails(location);
-    final mapController = await controller.future;
-    mapController.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
+
+    moveToCurrentLoction();
+  }
+
+  void moveToCurrentLoction() {
+    controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
       target: LatLng(currentLocation.latitude, currentLocation.longitude),
       zoom: 15,
     )));
