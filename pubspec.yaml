@@ -1,6 +1,6 @@
 name: google_location_picker
 description: Package for easily picking location from map with autocomplete feature
-version: 0.0.1
+version: 0.0.2
 homepage: https://github.com/hadyk77/google_location_picker.git
 
 environment:

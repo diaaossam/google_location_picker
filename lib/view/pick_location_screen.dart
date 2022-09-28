@@ -108,7 +108,7 @@ class _PickLocationScreenState extends State<PickLocationScreen> {
           ),
           Positioned(
             top: 20,
-            height: 100,
+            height: 150,
             width: MediaQuery.of(context).size.width,
             child: SafeArea(
               child: Padding(

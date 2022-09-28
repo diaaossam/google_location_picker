@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
@@ -6,14 +7,14 @@ import 'package:geocoder2/geocoder2.dart';
 import 'package:google_location_picker/models/location_model.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
-import 'package:location/location.dart';
+import 'package:location/location.dart' as location;
 
 class LocationProvider extends ChangeNotifier {
   late LocationModel currentLocation;
-  final Location _location;
+  final location.Location _location;
   late LocationModel _currentLocation;
   final String qKey;
-  GoogleMapController? controller;
+  Completer<GoogleMapController> controller = Completer();
 
   List<LocationModel> searchResult = [];
 
@@ -23,7 +24,7 @@ class LocationProvider extends ChangeNotifier {
   }
   Future getCurrentLocation() async {
     final hasPermission =
-        (await _location.hasPermission()) == PermissionStatus.granted;
+        (await _location.hasPermission()) == location.PermissionStatus.granted;
 
     if (!hasPermission) {
       await _location.requestPermission();
@@ -73,16 +74,15 @@ class LocationProvider extends ChangeNotifier {
     }
   }
 
-  onMapCreated(GoogleMapController controller) {
-    this.controller = controller;
-    Future.delayed(const Duration(seconds: 2), () {
-      controller.animateCamera(CameraUpdate.newCameraPosition(
-        CameraPosition(
-          target: LatLng(_currentLocation.latitude, _currentLocation.longitude),
-          zoom: 15,
-        ),
-      ));
-    });
+  onMapCreated(GoogleMapController controller) async {
+    this.controller.complete(controller);
+    final mapController = await this.controller.future;
+    mapController.animateCamera(CameraUpdate.newCameraPosition(
+      CameraPosition(
+        target: LatLng(_currentLocation.latitude, _currentLocation.longitude),
+        zoom: 15,
+      ),
+    ));
   }
 
   search(String query) async {
@@ -122,8 +122,8 @@ class LocationProvider extends ChangeNotifier {
 
   onLocationPicked(LocationModel location) async {
     currentLocation = await getLocationDetails(location);
-
-    controller!.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
+    final mapController = await controller.future;
+    mapController.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
       target: LatLng(currentLocation.latitude, currentLocation.longitude),
       zoom: 15,
     )));
