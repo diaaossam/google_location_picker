@@ -129,8 +129,10 @@ class _PickLocationScreenState extends State<PickLocationScreen> {
                                 .onLocationPicked(locationModel);
                           },
                           itemToString: (location) => location.address ?? "",
-                          onChanged: (query) {
-                            context.read(locationProvider).search(query);
+                          onChanged: (query) async {
+                            return await context
+                                .read(locationProvider)
+                                .search(query);
                           },
                         ),
                       ),

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 import 'package:google_location_picker/models/location_model.dart';
@@ -85,7 +84,7 @@ class LocationProvider extends ChangeNotifier {
     this.controller = controller;
   }
 
-  search(String query) async {
+  Future<List<LocationModel>> search(String query) async {
     String url =
         "https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$query&location=${currentLocation.latitude},${currentLocation.longitude}t&key=$qKey";
 
@@ -103,8 +102,9 @@ class LocationProvider extends ChangeNotifier {
         placeId: map['place_id'],
       ),
     ));
-    log("log:${searchResult.length}");
+
     notifyListeners();
+    return searchResult;
   }
 
   Future<LocationModel> getLocationDetails(LocationModel model) async {

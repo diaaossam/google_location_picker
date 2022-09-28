@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 
 class SearchableTextField<T> extends StatefulWidget {
@@ -18,7 +20,7 @@ class SearchableTextField<T> extends StatefulWidget {
     this.defaultValue,
     this.decoration,
   }) : super(key: key);
-  final ValueChanged<String>? onChanged;
+  final Future<List<T>> Function(String)? onChanged;
   final TextEditingController? controller;
   final String? Function(String?)? validator;
   final double borderRaduis;
@@ -41,28 +43,37 @@ class _AutoCompleteTextFieldState<T> extends State<SearchableTextField<T>> {
   OverlayEntry? _entry;
   final FocusNode _focusNode = FocusNode();
   final LayerLink _layerLink = LayerLink();
-  late List displayList = [];
+  List<T> displayList = [];
   final TextEditingController _controller = TextEditingController();
   @override
   void initState() {
     super.initState();
+    log("init state ${widget.items.toString()}");
     if (widget.defaultValue != null) {
       _controller.text = widget.itemToString(widget.defaultValue as T);
     }
     _focusNode.addListener(() {
       if (_focusNode.hasFocus) {
-        _showOverLay();
+        _showOverLay(widget.items);
       } else {
         _hideOverlay();
       }
     });
   }
 
-  void _showOverLay() {
+  @override
+  void dispose() {
+    _hideOverlay();
+    super.dispose();
+  }
+
+  void _showOverLay(List<T> items) {
+    _hideOverlay();
     final overLay = Overlay.of(context)!;
     final RenderBox renderBox = (context.findRenderObject() as RenderBox);
     final size = renderBox.size;
     final offset = renderBox.localToGlobal(Offset.zero);
+
     _entry = OverlayEntry(
       maintainState: true,
       builder: (context) => Positioned(
@@ -73,7 +84,7 @@ class _AutoCompleteTextFieldState<T> extends State<SearchableTextField<T>> {
           link: _layerLink,
           offset: Offset(0.0, size.height - 10),
           showWhenUnlinked: false,
-          child: _buildSearchResult(),
+          child: _buildSearchResult(items),
         ),
       ),
     );
@@ -85,7 +96,7 @@ class _AutoCompleteTextFieldState<T> extends State<SearchableTextField<T>> {
     _entry = null;
   }
 
-  Widget _buildSearchResult() {
+  Widget _buildSearchResult(List<T> items) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
@@ -109,7 +120,7 @@ class _AutoCompleteTextFieldState<T> extends State<SearchableTextField<T>> {
           child: Scrollbar(
               child: ListView.builder(
                   shrinkWrap: true,
-                  itemCount: displayList.length,
+                  itemCount: items.length,
                   padding: EdgeInsets.zero,
                   itemBuilder: (context, index) {
                     return Padding(
@@ -117,8 +128,8 @@ class _AutoCompleteTextFieldState<T> extends State<SearchableTextField<T>> {
                       child: Material(
                         child: InkWell(
                           onTap: () => _onSelected(index),
-                          child: Text(widget
-                              .itemToString(displayList.elementAt(index))),
+                          child:
+                              Text(widget.itemToString(items.elementAt(index))),
                         ),
                       ),
                     );
@@ -129,26 +140,29 @@ class _AutoCompleteTextFieldState<T> extends State<SearchableTextField<T>> {
   }
 
   void _onSelected(int index) {
-    _controller.text = widget.itemToString(displayList.elementAt(index));
-    widget.onSubmit(displayList.elementAt(index));
+    _controller.text = widget.itemToString(widget.items.elementAt(index));
+    widget.onSubmit(widget.items.elementAt(index));
     _hideOverlay();
     _focusNode.unfocus();
   }
 
-  void _onSearch(String? query) {
+  Future<void> _onSearch(String? query) async {
     _hideOverlay();
-    widget.onChanged?.call(query!);
-    _showOverLay();
+    if (query?.isNotEmpty == true) {
+      final list = await widget.onChanged!.call(query!);
+
+      _showOverLay(list);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    displayList = widget.items;
-
     return CompositedTransformTarget(
       link: _layerLink,
       child: TextField(
-        onChanged: _onSearch,
+        onChanged: (v) {
+          _onSearch(v);
+        },
         decoration: InputDecoration(
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(30),
